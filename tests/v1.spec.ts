@@ -70,6 +70,26 @@ test("V1 planner, habits, goals, insights and privacy flows", async ({
   await dialog.getByRole("button", { name: "Save goal" }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.getByText("33% complete")).toBeVisible();
+  await page.getByRole("button", { name: "Activities", exact: true }).click();
+  await page.getByRole("button", { name: "Log activity" }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Title").fill("Read outdoors");
+  await dialog
+    .getByRole("combobox", { name: "Category" })
+    .selectOption({ label: "Reading" });
+  const [linkedGoalId] = await dialog
+    .getByRole("combobox", { name: "Link a goal (optional)" })
+    .selectOption({ label: "Read 3 days" });
+  await dialog.getByRole("button", { name: "Save activity" }).click();
+  await expect(dialog).not.toBeVisible();
+  await page.getByRole("button", { name: "Edit Read outdoors" }).click();
+  dialog = page.getByRole("dialog");
+  await expect(
+    dialog.getByRole("combobox", { name: "Link a goal (optional)" }),
+  ).toHaveValue(linkedGoalId);
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "Goals", exact: true }).click();
+  await expect(page.getByText("33% complete")).toBeVisible();
   await page.getByRole("button", { name: "Insights", exact: true }).click();
   await page.getByRole("button", { name: "Enable data insights" }).click();
   await page.getByRole("button", { name: "Weekly summary" }).click();

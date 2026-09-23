@@ -1256,12 +1256,20 @@ function Editor({
     [accountId, setAccountId] = useState(
       row?.account_id || data.accounts[0]?.id || "",
     );
-  const [goals, setGoals] = useState<Row[]>([]);
+  const [goals, setGoals] = useState<Row[]>([]),
+    [selectedGoalId, setSelectedGoalId] = useState(row?.goal_id || ""),
+    [goalsLoading, setGoalsLoading] = useState(resource === "activities"),
+    [goalsError, setGoalsError] = useState("");
   useEffect(() => {
     if (resource === "activities")
-      void api("/goals")
-        .then(setGoals)
-        .catch(() => setGoals([]));
+      void api("/dashboard")
+        .then((dashboard) => setGoals(dashboard.goals))
+        .catch(() =>
+          setGoalsError(
+            "Goals could not be loaded. Try reopening the activity form.",
+          ),
+        )
+        .finally(() => setGoalsLoading(false));
   }, [resource]);
   const selectedCurrency =
     resource === "transactions"
@@ -1307,7 +1315,10 @@ function Editor({
       if (resource === "activities") {
         payload.duration = Number(payload.duration);
         payload.transaction_id = payload.transaction_id || null;
-        payload.goal_id = payload.goal_id || null;
+        payload.goal_id =
+          goalsLoading || goalsError
+            ? row?.goal_id || null
+            : payload.goal_id || null;
         payload.client_id = row?.client_id || crypto.randomUUID();
       }
       if (payload.occurred_at)
@@ -1535,17 +1546,44 @@ function Editor({
               second charge.
             </small>
             <Field label="Link a goal (optional)">
-              <select name="goal_id" defaultValue={row?.goal_id || ""}>
+              <select
+                name="goal_id"
+                value={selectedGoalId}
+                onChange={(e) => setSelectedGoalId(e.target.value)}
+                disabled={goalsLoading || !!goalsError}
+              >
                 <option value="">No linked goal</option>
                 {goals
-                  .filter((g) => g.metric === "activity_minutes")
+                  .filter(
+                    (g) => g.status !== "achieved" || g.id === row?.goal_id,
+                  )
                   .map((g) => (
                     <option key={g.id} value={g.id}>
                       {g.title}
+                      {g.status === "achieved" ? " · achieved" : ""}
                     </option>
                   ))}
               </select>
             </Field>
+            {goalsLoading && <small>Loading your goals…</small>}
+            {goalsError && (
+              <p className="error" role="alert">
+                {goalsError}
+              </p>
+            )}
+            {!goalsLoading &&
+              !goalsError &&
+              !goals.some((g) => g.status !== "achieved") &&
+              !row?.goal_id && (
+                <small>
+                  No active goals yet. Create one on the Goals page.
+                </small>
+              )}
+            <small>
+              Any active goal can be linked for context. Activity minutes
+              increase progress only for goals measured by linked activity
+              minutes.
+            </small>
             <Field label="Tags (comma separated)">
               <input
                 name="tags"
