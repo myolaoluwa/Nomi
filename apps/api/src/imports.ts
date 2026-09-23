@@ -166,22 +166,24 @@ export function installImports(app: Express, db: Database) {
         res.status(404).json({ error: "Import not found" });
         return;
       }
-      await db.query(
-        "DELETE FROM activities WHERE import_id=$1 AND user_id=$2",
-        [importId, user],
-      );
-      await db.query(
-        "UPDATE activities SET transaction_id=NULL WHERE user_id=$1 AND transaction_id IN (SELECT id FROM transactions WHERE import_id=$2 AND user_id=$1)",
-        [user, importId],
-      );
-      await db.query(
-        "DELETE FROM transactions WHERE import_id=$1 AND user_id=$2",
-        [importId, user],
-      );
-      await db.query("DELETE FROM imports WHERE id=$1 AND user_id=$2", [
-        importId,
-        user,
-      ]);
+      await db.transaction(async (tx) => {
+        await tx.query(
+          "DELETE FROM activities WHERE import_id=$1 AND user_id=$2",
+          [importId, user],
+        );
+        await tx.query(
+          "UPDATE activities SET transaction_id=NULL WHERE user_id=$1 AND transaction_id IN (SELECT id FROM transactions WHERE import_id=$2 AND user_id=$1)",
+          [user, importId],
+        );
+        await tx.query(
+          "DELETE FROM transactions WHERE import_id=$1 AND user_id=$2",
+          [importId, user],
+        );
+        await tx.query("DELETE FROM imports WHERE id=$1 AND user_id=$2", [
+          importId,
+          user,
+        ]);
+      });
       res.json({ ok: true });
     }),
   );

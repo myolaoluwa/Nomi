@@ -291,6 +291,11 @@ export default function App() {
             `${pending.length} offline activit${pending.length === 1 ? "y" : "ies"} synced`,
           );
       } catch (error) {
+        if ((error as Error).message === "Please sign in to continue") {
+          setUser(null);
+          setError("Sign in to sync your saved offline entries.");
+          return;
+        }
         setOfflineMode(true);
         setError(
           `Offline entries are waiting to sync: ${(error as Error).message}`,

@@ -26,12 +26,13 @@ async function operation<T>(
   return new Promise((resolve, reject) => {
     const tx = db.transaction(store, mode),
       req = run(tx.objectStore(store));
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-    tx.oncomplete = () => db.close();
-    tx.onerror = () => {
+    tx.oncomplete = () => {
       db.close();
-      reject(tx.error);
+      resolve(req.result);
+    };
+    tx.onabort = tx.onerror = () => {
+      db.close();
+      reject(tx.error || req.error);
     };
   });
 }

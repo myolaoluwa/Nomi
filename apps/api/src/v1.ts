@@ -122,6 +122,8 @@ function enrich(raw: Awaited<ReturnType<typeof snapshot>>, timezone: string) {
   const today = dateKey(new Date().toISOString(), timezone),
     weekStart = daysAgo(today, 6),
     month = today.slice(0, 7);
+  const weekDay = new Date(`${today}T12:00:00Z`).getUTCDay();
+  const calendarWeekStart = daysAgo(today, (weekDay + 6) % 7);
   const accountCurrency = (id: string) =>
     raw.accounts.find((a) => a.id === id)?.currency;
   const accounts = raw.accounts.map((a) => ({
@@ -141,16 +143,29 @@ function enrich(raw: Awaited<ReturnType<typeof snapshot>>, timezone: string) {
         .filter((l) => l.habit_id === h.id)
         .map((l) => String(l.occurred_on).slice(0, 10)),
     );
+    const countWeek = (start: string) =>
+      [0, 1, 2, 3, 4, 5, 6].reduce(
+        (n, i) => n + Number(dates.has(daysAgo(start, -i))),
+        0,
+      );
+    const weekCount = countWeek(calendarWeekStart);
     let streak = 0;
-    let cursor = dates.has(today) ? today : daysAgo(today, 1);
-    while (dates.has(cursor)) {
-      streak++;
-      cursor = daysAgo(cursor, 1);
+    if (h.cadence === "weekly") {
+      let cursor =
+        weekCount >= Number(h.target_per_week)
+          ? calendarWeekStart
+          : daysAgo(calendarWeekStart, 7);
+      while (countWeek(cursor) >= Number(h.target_per_week)) {
+        streak++;
+        cursor = daysAgo(cursor, 7);
+      }
+    } else {
+      let cursor = dates.has(today) ? today : daysAgo(today, 1);
+      while (dates.has(cursor)) {
+        streak++;
+        cursor = daysAgo(cursor, 1);
+      }
     }
-    const weekCount = [0, 1, 2, 3, 4, 5, 6].reduce(
-      (n, i) => n + Number(dates.has(daysAgo(today, i))),
-      0,
-    );
     return {
       ...h,
       streak,
@@ -308,58 +323,72 @@ export function installV1(app: Express, db: Database) {
     wrap(async (req, res) => {
       const user = res.locals.user.id,
         recordId = id.parse(req.params.id);
-      const task = (
-        await db.query("SELECT * FROM tasks WHERE id=$1 AND user_id=$2", [
-          recordId,
-          user,
-        ])
-      ).rows[0];
-      if (!task) {
-        res.status(404).json({ error: "Task not found" });
-        return;
-      }
-      if (task.completed_at) {
-        res.status(409).json({ error: "Task already completed" });
-        return;
-      }
-      await db.query(
-        "UPDATE tasks SET completed_at=now(),updated_at=now() WHERE id=$1 AND user_id=$2",
-        [recordId, user],
-      );
-      let next = null;
-      if (task.recurrence !== "none") {
-        const date = new Date(task.due_at || new Date());
-        if (task.recurrence === "daily") date.setUTCDate(date.getUTCDate() + 1);
-        if (task.recurrence === "weekly")
-          date.setUTCDate(date.getUTCDate() + 7);
-        if (task.recurrence === "monthly")
-          date.setUTCMonth(date.getUTCMonth() + 1);
-        while (date <= new Date()) {
-          if (task.recurrence === "daily")
-            date.setUTCDate(date.getUTCDate() + 1);
-          else if (task.recurrence === "weekly")
-            date.setUTCDate(date.getUTCDate() + 7);
-          else date.setUTCMonth(date.getUTCMonth() + 1);
-        }
-        next = (
-          await db.query(
-            "INSERT INTO tasks(id,user_id,title,notes,priority,project_id,goal_id,due_at,reminder_at,recurrence) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",
-            [
-              randomUUID(),
-              user,
-              task.title,
-              task.notes,
-              task.priority,
-              task.project_id,
-              task.goal_id,
-              date.toISOString(),
-              null,
-              task.recurrence,
-            ],
+      const result = await db.transaction(async (tx) => {
+        const task = (
+          await tx.query(
+            "SELECT * FROM tasks WHERE id=$1 AND user_id=$2 FOR UPDATE",
+            [recordId, user],
           )
         ).rows[0];
-      }
-      res.json({ ok: true, next });
+        if (!task) return { status: 404, error: "Task not found" };
+        if (task.completed_at)
+          return { status: 409, error: "Task already completed" };
+        await tx.query(
+          "UPDATE tasks SET completed_at=now(),updated_at=now() WHERE id=$1 AND user_id=$2",
+          [recordId, user],
+        );
+        let next = null;
+        if (task.recurrence !== "none") {
+          const date = new Date(task.due_at || new Date());
+          const reminderOffset =
+            task.reminder_at && task.due_at
+              ? new Date(task.due_at).getTime() -
+                new Date(task.reminder_at).getTime()
+              : null;
+          const advance = () => {
+            if (task.recurrence === "daily")
+              date.setUTCDate(date.getUTCDate() + 1);
+            else if (task.recurrence === "weekly")
+              date.setUTCDate(date.getUTCDate() + 7);
+            else {
+              const day = date.getUTCDate();
+              date.setUTCDate(1);
+              date.setUTCMonth(date.getUTCMonth() + 1);
+              date.setUTCDate(
+                Math.min(
+                  day,
+                  new Date(
+                    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0),
+                  ).getUTCDate(),
+                ),
+              );
+            }
+          };
+          do advance();
+          while (date <= new Date());
+          next = (
+            await tx.query(
+              "INSERT INTO tasks(id,user_id,title,notes,priority,project_id,goal_id,due_at,reminder_at,recurrence) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",
+              [
+                randomUUID(),
+                user,
+                task.title,
+                task.notes,
+                task.priority,
+                task.project_id,
+                task.goal_id,
+                date.toISOString(),
+                reminderOffset === null
+                  ? null
+                  : new Date(date.getTime() - reminderOffset).toISOString(),
+                task.recurrence,
+              ],
+            )
+          ).rows[0];
+        }
+        return { status: 200, ok: true, next };
+      });
+      res.status(result.status).json(result);
     }),
   );
   app.post(
@@ -627,28 +656,30 @@ export function installV1(app: Express, db: Database) {
         .parse(req.body);
       void confirmation;
       const user = res.locals.user.id;
-      for (const table of [
-        "activities",
-        "transactions",
-        "budgets",
-        "habit_logs",
-        "tasks",
-        "goals",
-        "habits",
-        "projects",
-        "categories",
-        "accounts",
-        "imports",
-        "ai_query_logs",
-        "sessions",
-      ])
-        await db.query(`DELETE FROM ${table} WHERE user_id=$1`, [user]);
-      await db.query("DELETE FROM users WHERE id=$1", [user]);
+      await db.transaction(async (tx) => {
+        for (const table of [
+          "activities",
+          "transactions",
+          "budgets",
+          "habit_logs",
+          "tasks",
+          "goals",
+          "habits",
+          "projects",
+          "categories",
+          "accounts",
+          "imports",
+          "ai_query_logs",
+          "sessions",
+        ])
+          await tx.query(`DELETE FROM ${table} WHERE user_id=$1`, [user]);
+        await tx.query("DELETE FROM users WHERE id=$1", [user]);
+      });
       res.clearCookie("nomi_session", {
         path: "/api",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        sameSite: "lax",
       });
       res.json({ ok: true });
     }),
@@ -763,7 +794,7 @@ export function installV1(app: Express, db: Database) {
           ? e.habits
               .map(
                 (h) =>
-                  `${h.name}: ${h.week_count}/${h.week_target} completions this week, ${h.streak}-day streak`,
+                  `${h.name}: ${h.week_count}/${h.week_target} completions this week, ${h.streak}-${h.cadence === "weekly" ? "week" : "day"} streak`,
               )
               .join(". ") + "."
           : "No habits are tracked yet.";

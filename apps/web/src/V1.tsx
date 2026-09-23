@@ -149,7 +149,8 @@ export function OverviewExtras({
             <span>
               <strong>{h.name}</strong>
               <small>
-                {h.week_count}/{h.week_target} this week · {h.streak} day streak
+                {h.week_count}/{h.week_target} this week · {h.streak}{" "}
+                {h.cadence === "weekly" ? "week" : "day"} streak
               </small>
             </span>
           </article>
@@ -296,6 +297,8 @@ export default function V1({
     setError("");
     setFileName(file.name);
     try {
+      if (file.size > 2_000_000)
+        throw new Error("Choose a CSV smaller than 2 MB");
       const input = parseCsv(await file.text());
       const result = mapRows(source, input, finance);
       const data = await api("/imports/preview", "POST", {
@@ -459,7 +462,8 @@ export default function V1({
                     {h.cadence === "daily"
                       ? "Daily"
                       : `${h.target_per_week} times a week`}{" "}
-                    · {h.streak} day streak
+                    · {h.streak} {h.cadence === "weekly" ? "week" : "day"}{" "}
+                    streak
                   </p>
                   <p>
                     {h.week_count}/{h.week_target} check-ins this week
@@ -1334,6 +1338,8 @@ function parseCsv(text: string) {
       .toLowerCase()
       .replace(/^\ufeff/, ""),
   );
+  if (headers.some((h) => !h) || new Set(headers).size !== headers.length)
+    throw new Error("CSV headers must be nonempty and unique");
   return rows.map((values, i) => {
     if (values.length !== headers.length)
       throw new Error(

@@ -107,21 +107,27 @@ const wrap =
   };
 export function createApp(db: Database) {
   const app = express();
-  if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+  const production = process.env.NODE_ENV === "production";
+  if (production) app.set("trust proxy", 1);
+  if (production && !process.env.WEB_ORIGIN)
+    throw new Error("WEB_ORIGIN required in production");
   const origins = (process.env.WEB_ORIGIN || "http://localhost:5173")
     .split(",")
-    .map((s) => s.trim());
+    .map((s) => s.trim())
+    .filter(Boolean);
   app.use(
     helmet(),
     cors({ origin: origins, credentials: true }),
-    express.json({ limit: "32kb" }),
+    express.json({ limit: "2.5mb" }),
   );
   app.use("/api", (req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
+    res.vary("Sec-Fetch-Site");
     if (
       !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
-      req.headers.origin &&
-      !origins.includes(req.headers.origin)
+      ((production && !req.headers.origin) ||
+        (req.headers.origin && !origins.includes(req.headers.origin)) ||
+        req.headers["sec-fetch-site"] === "cross-site")
     ) {
       res.status(403).json({ error: "Origin not allowed" });
       return;
@@ -145,11 +151,10 @@ export function createApp(db: Database) {
       message: { error: "Too many sign-in attempts. Try again later." },
     }),
   );
-  const production = process.env.NODE_ENV === "production";
   const cookieOptions = {
     httpOnly: true,
     secure: production,
-    sameSite: production ? ("none" as const) : ("lax" as const),
+    sameSite: "lax" as const,
     path: "/api",
   };
   async function session(userId: string, res: Response) {
@@ -437,6 +442,10 @@ export function createApp(db: Database) {
     }
     if (error.type === "entity.parse.failed") {
       res.status(400).json({ error: "Invalid JSON" });
+      return;
+    }
+    if (error.type === "entity.too.large") {
+      res.status(413).json({ error: "Request is too large" });
       return;
     }
     console.error(error);
