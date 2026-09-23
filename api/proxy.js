@@ -2,6 +2,7 @@ const blockedHeaders = new Set([
   "connection",
   "content-encoding",
   "content-length",
+  "expect",
   "host",
   "keep-alive",
   "transfer-encoding",
