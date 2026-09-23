@@ -22,4 +22,4 @@
 
 ## Scope and limits
 
-V1 uses explicit CSV imports rather than bank/calendar/fitness provider OAuth connections. No background provider synchronization, notification delivery, password recovery/email verification, or native mobile build. The question parser handles listed personal-data topics deterministically; it does not send data to an AI service or generate unrestricted answers. These limits should be evaluated against any broader release promise before launch.
+V1 uses explicit CSV imports rather than bank/calendar/fitness provider OAuth connections. No background provider synchronization, notification delivery, email verification, or native mobile build. Password recovery uses a single-use code shown to the user at registration or regeneration; no email reset is available. The question parser handles listed personal-data topics deterministically; it does not send data to an AI service or generate unrestricted answers. These limits should be evaluated against any broader release promise before launch.

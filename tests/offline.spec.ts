@@ -14,7 +14,10 @@ test("offline activity logging queues locally and syncs once online", async ({
   await page
     .getByLabel("Password", { exact: true })
     .fill("long-passphrase-2026");
+  await page.getByLabel("Confirm password").fill("long-passphrase-2026");
   await page.getByRole("button", { name: "Create your account" }).click();
+  await expect(page.locator("code[aria-label='Recovery code']")).toBeVisible();
+  await page.getByRole("button", { name: "I saved it — continue" }).click();
   await expect(
     page.getByRole("heading", { name: "Hello, Offline." }),
   ).toBeVisible();

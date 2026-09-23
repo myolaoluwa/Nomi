@@ -16,6 +16,7 @@ const profile = {
   name: "Ada",
   email: "ada@example.test",
   password: "correct-horse-2026",
+  password_confirmation: "correct-horse-2026",
   currency: "NGN",
   timezone: "Africa/Lagos",
   locale: "en-NG",

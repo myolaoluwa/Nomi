@@ -15,7 +15,7 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 import { z } from "zod";
-import type { Database } from "./db.js";
+import type { Database, Queryable } from "./db.js";
 import { installV1 } from "./v1.js";
 import { installImports } from "./imports.js";
 const scrypt = promisify(scryptCallback);
@@ -54,6 +54,47 @@ const credentials = z.object({
     .transform((v) => v.toLowerCase()),
   password: z.string().min(10).max(128),
 });
+const confirmedPassword = z
+  .object({
+    password: z.string().min(12).max(128),
+    password_confirmation: z.string(),
+  })
+  .refine((value) => value.password === value.password_confirmation, {
+    path: ["password_confirmation"],
+    message: "Passwords do not match",
+  });
+const email = credentials.shape.email;
+const recoveryCodeInput = z.string().trim().max(100);
+const passwordHash = async (password: string) => {
+  const salt = randomBytes(16).toString("hex");
+  const digest = ((await scrypt(password, salt, 64)) as Buffer).toString("hex");
+  return `${salt}:${digest}`;
+};
+const passwordMatches = async (password: string, stored?: string) => {
+  const [salt, digest] = stored?.split(":") ?? ["invalid", "00".repeat(64)];
+  const candidate = (await scrypt(password, salt, 64)) as Buffer;
+  return timingSafeEqual(candidate, Buffer.from(digest, "hex")) && !!stored;
+};
+const newRecoveryCode = () =>
+  `NOMI-${randomBytes(20)
+    .toString("hex")
+    .toUpperCase()
+    .match(/.{1,8}/g)!
+    .join("-")}`;
+const recoveryDigest = (code: string) =>
+  hash(`nomi-recovery-v1:${code.replace(/[\s-]/g, "").toUpperCase()}`);
+const recoveryMatches = (code: string, stored?: string) => {
+  const normalized = code.replace(/[\s-]/g, "").toUpperCase();
+  const candidate = recoveryDigest(code);
+  return (
+    /^NOMI[0-9A-F]{40}$/.test(normalized) &&
+    timingSafeEqual(
+      Buffer.from(candidate, "hex"),
+      Buffer.from(stored ?? "00".repeat(32), "hex"),
+    ) &&
+    !!stored
+  );
+};
 const money = z.number().int().safe().max(1e14);
 const date = z.string().datetime({ offset: true });
 const schemas = {
@@ -157,13 +198,16 @@ export function createApp(db: Database) {
     sameSite: "lax" as const,
     path: "/api",
   };
-  async function session(userId: string, res: Response) {
+  async function createSession(userId: string, query: Queryable = db) {
     const token = randomBytes(32).toString("hex");
-    await db.query("DELETE FROM sessions WHERE expires_at<now()");
-    await db.query(
+    await query.query("DELETE FROM sessions WHERE expires_at<now()");
+    await query.query(
       "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '7 days')",
       [hash(token), userId],
     );
+    return token;
+  }
+  function setSessionCookie(token: string, res: Response) {
     res.cookie("nomi_session", token, {
       ...cookieOptions,
       maxAge: 7 * 86400000,
@@ -172,11 +216,12 @@ export function createApp(db: Database) {
   app.post(
     "/api/auth/register",
     wrap(async (req, res) => {
-      const input = credentials.merge(profile).parse(req.body);
-      const salt = randomBytes(16).toString("hex");
-      const digest = (
-        (await scrypt(input.password, salt, 64)) as Buffer
-      ).toString("hex");
+      const input = credentials
+        .merge(profile)
+        .and(confirmedPassword)
+        .parse(req.body);
+      const digest = await passwordHash(input.password);
+      const recoveryCode = newRecoveryCode();
       const id = randomUUID();
       const defaults = [
         ["Salary", "income"],
@@ -194,28 +239,36 @@ export function createApp(db: Database) {
         ["Personal", "activity"],
       ];
       // Create the user and starter categories atomically in one SQL statement.
-      await db.query(
-        `WITH new_user AS (
-          INSERT INTO users(id,email,password_hash,name,currency,timezone,locale)
-          VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id
+      const token = await db.transaction(async (tx) => {
+        await tx.query(
+          `WITH new_user AS (
+          INSERT INTO users(id,email,password_hash,name,currency,timezone,locale,recovery_code_hash)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$9) RETURNING id
         ) INSERT INTO categories(id,user_id,name,kind)
         SELECT c.id,u.id,c.name,c.kind FROM new_user u
         CROSS JOIN jsonb_to_recordset($8::jsonb) AS c(id uuid,name text,kind text)`,
-        [
-          id,
-          input.email,
-          `${salt}:${digest}`,
-          input.name,
-          input.currency,
-          input.timezone,
-          input.locale,
-          JSON.stringify(
-            defaults.map(([name, kind]) => ({ id: randomUUID(), name, kind })),
-          ),
-        ],
-      );
-      await session(id, res);
-      res.status(201).json({ id });
+          [
+            id,
+            input.email,
+            digest,
+            input.name,
+            input.currency,
+            input.timezone,
+            input.locale,
+            JSON.stringify(
+              defaults.map(([name, kind]) => ({
+                id: randomUUID(),
+                name,
+                kind,
+              })),
+            ),
+            recoveryDigest(recoveryCode),
+          ],
+        );
+        return createSession(id, tx);
+      });
+      setSessionCookie(token, res);
+      res.status(201).json({ id, recovery_code: recoveryCode });
     }),
   );
   app.post(
@@ -225,16 +278,45 @@ export function createApp(db: Database) {
       const user = (
         await db.query("SELECT * FROM users WHERE email=$1", [input.email])
       ).rows[0];
-      const [salt, digest] = user
-        ? user.password_hash.split(":")
-        : ["invalid", "00".repeat(64)];
-      const candidate = (await scrypt(input.password, salt, 64)) as Buffer;
-      if (!timingSafeEqual(candidate, Buffer.from(digest, "hex")) || !user) {
+      if (!(await passwordMatches(input.password, user?.password_hash))) {
         res.status(401).json({ error: "Email or password is incorrect" });
         return;
       }
-      await session(user.id, res);
+      setSessionCookie(await createSession(user.id), res);
       res.json({ id: user.id });
+    }),
+  );
+  app.post(
+    "/api/auth/recover",
+    wrap(async (req, res) => {
+      const input = z
+        .object({ email, recovery_code: recoveryCodeInput })
+        .and(confirmedPassword)
+        .parse(req.body);
+      const replacement = newRecoveryCode();
+      const nextPassword = await passwordHash(input.password);
+      const changed = await db.transaction(async (tx: Queryable) => {
+        const user = (
+          await tx.query(
+            "SELECT id,recovery_code_hash FROM users WHERE email=$1 FOR UPDATE",
+            [input.email],
+          )
+        ).rows[0];
+        if (!recoveryMatches(input.recovery_code, user?.recovery_code_hash))
+          return false;
+        await tx.query(
+          "UPDATE users SET password_hash=$1,recovery_code_hash=$2,updated_at=now() WHERE id=$3",
+          [nextPassword, recoveryDigest(replacement), user.id],
+        );
+        await tx.query("DELETE FROM sessions WHERE user_id=$1", [user.id]);
+        return true;
+      });
+      if (!changed) {
+        res.status(401).json({ error: "Email or recovery code is incorrect" });
+        return;
+      }
+      res.clearCookie("nomi_session", cookieOptions);
+      res.json({ recovery_code: replacement });
     }),
   );
   app.use("/api", (req, res, next) => {
@@ -248,7 +330,7 @@ export function createApp(db: Database) {
         token &&
         (
           await db.query(
-            "SELECT u.id,u.email,u.name,u.currency,u.timezone,u.locale FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at>now()",
+            "SELECT u.id,u.email,u.name,u.currency,u.timezone,u.locale,(u.recovery_code_hash IS NOT NULL) AS recovery_code_set FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at>now()",
             [hash(token)],
           )
         ).rows[0];
@@ -271,6 +353,35 @@ export function createApp(db: Database) {
       res.json({ ok: true });
     }),
   );
+  app.post(
+    "/api/auth/recovery-code",
+    wrap(async (req, res) => {
+      const { password } = z
+        .object({ password: z.string().min(1).max(128) })
+        .parse(req.body);
+      const code = newRecoveryCode();
+      const changed = await db.transaction(async (tx) => {
+        const user = (
+          await tx.query(
+            "SELECT password_hash FROM users WHERE id=$1 FOR UPDATE",
+            [res.locals.user.id],
+          )
+        ).rows[0];
+        if (!(await passwordMatches(password, user?.password_hash)))
+          return false;
+        await tx.query(
+          "UPDATE users SET recovery_code_hash=$1,updated_at=now() WHERE id=$2",
+          [recoveryDigest(code), res.locals.user.id],
+        );
+        return true;
+      });
+      if (!changed) {
+        res.status(401).json({ error: "Current password is incorrect" });
+        return;
+      }
+      res.json({ recovery_code: code });
+    }),
+  );
   app.get("/api/me", (_req, res) => res.json(res.locals.user));
   app.put(
     "/api/me",
@@ -279,7 +390,7 @@ export function createApp(db: Database) {
       res.json(
         (
           await db.query(
-            "UPDATE users SET name=$1,currency=$2,timezone=$3,locale=$4,updated_at=now() WHERE id=$5 RETURNING id,email,name,currency,timezone,locale",
+            "UPDATE users SET name=$1,currency=$2,timezone=$3,locale=$4,updated_at=now() WHERE id=$5 RETURNING id,email,name,currency,timezone,locale,(recovery_code_hash IS NOT NULL) AS recovery_code_set",
             [p.name, p.currency, p.timezone, p.locale, res.locals.user.id],
           )
         ).rows[0],

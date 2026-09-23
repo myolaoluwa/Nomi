@@ -27,6 +27,7 @@ test("production sessions enforce origin checks and data changes roll back", asy
     const profile = {
       email: "hardening@example.test",
       password: "strong-test-passphrase",
+      password_confirmation: "strong-test-passphrase",
       name: "Hardening",
       currency: "NGN",
       timezone: "Africa/Lagos",

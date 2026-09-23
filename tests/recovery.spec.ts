@@ -1,0 +1,31 @@
+import { test, expect } from "@playwright/test";
+
+test("registration and forgot-password flow show one-time recovery codes", async ({ page }) => {
+  const email = `recovery-${Date.now()}@example.test`;
+  await page.goto("/");
+  await page.getByRole("button", { name: "Create an account", exact: true }).click();
+  await page.getByLabel("Your name").fill("Recovery Browser");
+  await page.getByLabel("Email address").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill("a-long-original-password");
+  await page.getByLabel("Confirm password").fill("a-long-original-password");
+  await page.getByRole("button", { name: "Create your account" }).click();
+  const code = await page.locator("code[aria-label='Recovery code']").textContent();
+  expect(code).toMatch(/^NOMI-/);
+  await page.getByRole("button", { name: "I saved it — continue" }).click();
+  await expect(page.getByRole("heading", { name: "Hello, Recovery." })).toBeVisible();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: "Forgot password?" }).click();
+  await page.getByLabel("Email address").fill(email);
+  await page.getByLabel("Recovery code").fill(code!);
+  await page.getByLabel("New password").fill("a-long-replacement-password");
+  await page.getByLabel("Confirm password").fill("a-long-replacement-password");
+  await page.getByRole("button", { name: "Reset password" }).click();
+  const replacement = await page.locator("code[aria-label='Recovery code']").textContent();
+  expect(replacement).not.toBe(code);
+  await page.getByRole("button", { name: "I saved it — sign in" }).click();
+  await page.getByLabel("Email address").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill("a-long-replacement-password");
+  await page.getByRole("button", { name: "Sign in →" }).click();
+  await expect(page.getByRole("heading", { name: "Your profile" })).toBeVisible();
+});

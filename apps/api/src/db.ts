@@ -59,6 +59,7 @@ export async function connect(): Promise<Database> {
         "001_initial.sql",
         "002_v1.sql",
         "003_offline.sql",
+        "004_recovery.sql",
       ].entries()) {
         const version = index + 1;
         if (

@@ -16,6 +16,7 @@ Open http://localhost:5173. The API starts at http://localhost:4000. Local devel
 ## V1 features
 
 - Private accounts; accounts, categories, transactions and monthly budgets; currency-aware balances.
+- Account creation with confirmed passwords and a one-time, server-generated recovery code. Password reset consumes the code, revokes all sessions, and issues a replacement. Signed-in users can replace a lost code in Settings after entering their current password. There is no email delivery; a signed-out user without their code cannot self-recover.
 - Activity logging with duration, tags, location and linked spending; a combined timeline.
 - Projects, prioritized tasks, in-app reminders and daily/weekly/monthly recurring tasks.
 - Daily or weekly habits, check-ins, streaks and a consistency view.
@@ -48,4 +49,4 @@ Both Vercel projects deploy from the monorepo root with `vercel.json`. The `/api
 
 To release an update, deploy the Railway staging API and Vercel staging project, verify it, then deploy the Railway production API and Vercel production project. The API provides `/health`; hosted registration, session, dashboard and account deletion were checked on both origins. Database migrations run in a transaction under a PostgreSQL advisory lock. Production Postgres has point-in-time recovery enabled. Check its archive health and perform a restore drill before depending on it as the sole recovery plan. The browser sends authenticated writes through the same-origin `/api` proxy; production requires `WEB_ORIGIN` and rejects writes without its matching `Origin` header. See [architecture](docs/architecture.md) and [phase acceptance](docs/phase-acceptance.md).
 
-Official references: [Vercel monorepos](https://vercel.com/docs/monorepos), [Railway health checks](https://docs.railway.com/deployments/healthchecks).
+Official references: [Vercel monorepos](https://vercel.com/docs/monorepos), [Railway health checks](https://docs.railway.com/deployments/healthchecks).

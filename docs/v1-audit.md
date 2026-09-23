@@ -25,4 +25,4 @@ Reviewed the API, migrations, browser app, offline queue, CSV imports, dependenc
 
 - Perform an isolated restore drill from the production backup before relying on point-in-time recovery as the only recovery plan. The first backup and archive writes were observed, but a restore was not performed.
 - Configure production alerting for API availability, failed deployments, database backup failures, and unusual auth errors. The API exposes `/health`; alert destinations are not configured in this repository.
-- If public self-service sign-up is expanded, add verified email delivery and a password recovery flow. These are outside the agreed V1 feature scope and require a mail provider.
+- Password recovery now uses a single-use, server-generated code shown once. There is no email delivery or identity verification. A signed-out user who has lost both password and code cannot self-recover; evaluate verified delivery before broad public sign-up.

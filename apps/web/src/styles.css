@@ -959,6 +959,23 @@ dialog::backdrop {
 .auth-form form {
   margin-top: 32px;
 }
+.recovery-reveal {
+  margin: 28px 0;
+}
+.recovery-reveal code {
+  display: block;
+  overflow-wrap: anywhere;
+  border: 1px solid #dce5d6;
+  border-radius: 10px;
+  background: #f4f8f0;
+  padding: 16px;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  user-select: all;
+}
+.recovery-reveal button {
+  margin-top: 18px;
+}
 .auth-switch {
   text-align: center;
   margin-top: 25px;

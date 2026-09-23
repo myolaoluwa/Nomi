@@ -13,7 +13,10 @@ test("V1 planner, habits, goals, insights and privacy flows", async ({
   await page
     .getByLabel("Password", { exact: true })
     .fill("long-passphrase-2026");
+  await page.getByLabel("Confirm password").fill("long-passphrase-2026");
   await page.getByRole("button", { name: "Create your account" }).click();
+  await expect(page.locator("code[aria-label='Recovery code']")).toBeVisible();
+  await page.getByRole("button", { name: "I saved it — continue" }).click();
   await expect(page.getByRole("heading", { name: "Hello, V1." })).toBeVisible();
   await page.getByRole("button", { name: "Finance", exact: true }).click();
   await page

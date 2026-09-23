@@ -5,6 +5,7 @@ export type User = {
   currency: string;
   timezone: string;
   locale: string;
+  recovery_code_set: boolean;
 };
 export type Row = { id: string; [key: string]: any };
 export type Resource =

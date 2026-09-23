@@ -80,7 +80,9 @@ function Currency({
   );
 }
 function Auth({ onLogin }: { onLogin: () => Promise<void> }) {
-  const [register, setRegister] = useState(false),
+  const [mode, setMode] = useState<"signin" | "register" | "forgot">("signin"),
+    [recoveryCode, setRecoveryCode] = useState(""),
+    [recoveryFromReset, setRecoveryFromReset] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [currency, setCurrency] = useState("NGN");
@@ -90,19 +92,37 @@ function Auth({ onLogin }: { onLogin: () => Promise<void> }) {
     setError("");
     const f = new FormData(e.currentTarget);
     try {
-      await api(`/auth/${register ? "register" : "login"}`, "POST", {
-        email: f.get("email"),
-        password: f.get("password"),
-        ...(register
-          ? {
-              name: f.get("name"),
-              currency,
-              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-              locale: navigator.language,
-            }
-          : {}),
-      });
-      await onLogin();
+      const password = String(f.get("password") || "");
+      const passwordConfirmation = String(f.get("password_confirmation") || "");
+      if (mode !== "signin" && password !== passwordConfirmation)
+        throw new Error("Passwords do not match");
+      const result = await api(
+        `/auth/${mode === "forgot" ? "recover" : mode === "register" ? "register" : "login"}`,
+        "POST",
+        {
+          email: f.get("email"),
+          password,
+          ...(mode !== "signin"
+            ? { password_confirmation: passwordConfirmation }
+            : {}),
+          ...(mode === "register"
+            ? {
+                name: f.get("name"),
+                currency,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                locale: navigator.language,
+              }
+            : {}),
+          ...(mode === "forgot"
+            ? { recovery_code: f.get("recovery_code") }
+            : {}),
+        },
+      );
+      if (mode === "signin") await onLogin();
+      else {
+        setRecoveryCode(result.recovery_code);
+        setRecoveryFromReset(mode === "forgot");
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -140,70 +160,165 @@ function Auth({ onLogin }: { onLogin: () => Promise<void> }) {
       <section className="auth-form">
         <p className="eyebrow">WELCOME TO NOMI</p>
         <h2>
-          {register ? "Make space for clarity." : "Good to see you again."}
+          {recoveryCode
+            ? "Save your new recovery code."
+            : mode === "register"
+              ? "Make space for clarity."
+              : mode === "forgot"
+                ? "Recover your account."
+                : "Good to see you again."}
         </h2>
         <p>
-          {register
-            ? "Start with the basics. Build your picture as you go."
-            : "Sign in to pick up where you left off."}
+          {recoveryCode
+            ? "This is the only time Nomi will show this code. Store it somewhere private."
+            : mode === "register"
+              ? "Start with the basics. Build your picture as you go."
+              : mode === "forgot"
+                ? "Enter your saved recovery code and choose a new password. We cannot send a reset link by email."
+                : "Sign in to pick up where you left off."}
         </p>
-        <form onSubmit={submit}>
-          {register && (
-            <Field label="Your name">
-              <input name="name" autoComplete="name" required maxLength={160} />
-            </Field>
-          )}
-          <Field label="Email address">
-            <input name="email" type="email" autoComplete="email" required />
-          </Field>
-          <Field label="Password">
-            <input
-              name="password"
-              type="password"
-              minLength={10}
-              maxLength={128}
-              autoComplete={register ? "new-password" : "current-password"}
-              required
-            />
-          </Field>
-          {register && (
-            <>
-              <small>Use at least 10 characters.</small>
-              <Field label="Default currency">
-                <Currency value={currency} onChange={setCurrency} />
-              </Field>
-              <small>
-                Your timezone starts as{" "}
-                {Intl.DateTimeFormat().resolvedOptions().timeZone}. You can
-                change it in Settings.
-              </small>
-            </>
-          )}
-          {error && (
-            <p role="alert" className="error">
-              {error}
+        {recoveryCode ? (
+          <div className="recovery-reveal">
+            <code aria-label="Recovery code">{recoveryCode}</code>
+            <p className="muted">
+              If you lose this code and cannot sign in, your account cannot be
+              recovered without email delivery.
             </p>
-          )}
-          <button className="primary full" disabled={busy}>
-            {busy
-              ? "Please wait…"
-              : register
-                ? "Create your account →"
-                : "Sign in →"}
-          </button>
-        </form>
-        <p className="auth-switch">
-          {register ? "Already have an account?" : "New to Nomi?"}{" "}
-          <button
-            className="text-button"
-            onClick={() => {
-              setRegister(!register);
-              setError("");
-            }}
-          >
-            {register ? "Sign in" : "Create an account"}
-          </button>
-        </p>
+            <button
+              className="primary full"
+              onClick={() => {
+                setRecoveryCode("");
+                if (recoveryFromReset) setMode("signin");
+                else
+                  void onLogin().catch((e) => setError((e as Error).message));
+              }}
+            >
+              {recoveryFromReset
+                ? "I saved it — sign in"
+                : "I saved it — continue"}
+            </button>
+            {error && (
+              <p role="alert" className="error">
+                {error}
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <form onSubmit={submit}>
+              {mode === "register" && (
+                <Field label="Your name">
+                  <input
+                    name="name"
+                    autoComplete="name"
+                    required
+                    maxLength={160}
+                  />
+                </Field>
+              )}
+              <Field label="Email address">
+                <input
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                />
+              </Field>
+              {mode === "forgot" && (
+                <Field label="Recovery code">
+                  <input
+                    name="recovery_code"
+                    autoComplete="off"
+                    spellCheck={false}
+                    required
+                    maxLength={100}
+                  />
+                </Field>
+              )}
+              <Field label={mode === "forgot" ? "New password" : "Password"}>
+                <input
+                  name="password"
+                  type="password"
+                  minLength={mode === "signin" ? 10 : 12}
+                  maxLength={128}
+                  autoComplete={
+                    mode === "signin" ? "current-password" : "new-password"
+                  }
+                  required
+                />
+              </Field>
+              {mode !== "signin" && (
+                <Field label="Confirm password">
+                  <input
+                    name="password_confirmation"
+                    type="password"
+                    minLength={12}
+                    maxLength={128}
+                    autoComplete="new-password"
+                    required
+                  />
+                </Field>
+              )}
+              {mode === "register" && (
+                <>
+                  <small>
+                    Use at least 12 characters. You will receive a one-time
+                    recovery code to save.
+                  </small>
+                  <Field label="Default currency">
+                    <Currency value={currency} onChange={setCurrency} />
+                  </Field>
+                  <small>
+                    Your timezone starts as{" "}
+                    {Intl.DateTimeFormat().resolvedOptions().timeZone}. You can
+                    change it in Settings.
+                  </small>
+                </>
+              )}
+              {error && (
+                <p role="alert" className="error">
+                  {error}
+                </p>
+              )}
+              <button className="primary full" disabled={busy}>
+                {busy
+                  ? "Please wait…"
+                  : mode === "register"
+                    ? "Create your account →"
+                    : mode === "forgot"
+                      ? "Reset password →"
+                      : "Sign in →"}
+              </button>
+            </form>
+            <p className="auth-switch">
+              {mode === "register"
+                ? "Already have an account?"
+                : mode === "forgot"
+                  ? "Remembered your password?"
+                  : "New to Nomi?"}{" "}
+              <button
+                className="text-button"
+                onClick={() => {
+                  setMode(mode === "signin" ? "register" : "signin");
+                  setError("");
+                }}
+              >
+                {mode === "signin" ? "Create an account" : "Sign in"}
+              </button>
+            </p>
+            {mode === "signin" && (
+              <button
+                className="text-button"
+                onClick={() => {
+                  setMode("forgot");
+                  setError("");
+                }}
+              >
+                Forgot password?
+              </button>
+            )}
+          </>
+        )}
         <small className="privacy-note">
           Your records are private to your account. Bank connections are not
           required.
@@ -1508,7 +1623,28 @@ function Settings({
 }) {
   const [currency, setCurrency] = useState(user.currency),
     [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [recoveryCode, setRecoveryCode] = useState(""),
+    [recoveryError, setRecoveryError] = useState(""),
+    [recoveryBusy, setRecoveryBusy] = useState(false);
+  async function regenerate(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setRecoveryBusy(true);
+    setRecoveryError("");
+    try {
+      const form = e.currentTarget;
+      const response = await api("/auth/recovery-code", "POST", {
+        password: new FormData(form).get("current_password"),
+      });
+      form.reset();
+      setRecoveryCode(response.recovery_code);
+      await onSave();
+    } catch (e) {
+      setRecoveryError((e as Error).message);
+    } finally {
+      setRecoveryBusy(false);
+    }
+  }
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -1582,6 +1718,49 @@ function Settings({
           {busy ? "Saving…" : "Save preferences"}
         </button>
       </form>
+      <hr />
+      <h3>Account recovery</h3>
+      <p className="muted">
+        {user.recovery_code_set
+          ? "A recovery code is active. You can replace it if it is lost or exposed."
+          : "Your account does not have a recovery code yet. Generate one while you can sign in."}{" "}
+        Nomi cannot email a reset link. Keep your code somewhere private.
+      </p>
+      {recoveryCode ? (
+        <div className="recovery-reveal">
+          <code aria-label="Recovery code">{recoveryCode}</code>
+          <p className="muted">
+            This is the only time this code will be shown. Your previous code is
+            invalid.
+          </p>
+          <button className="secondary" onClick={() => setRecoveryCode("")}>
+            I saved it
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={regenerate}>
+          <Field label="Current password">
+            <input
+              name="current_password"
+              type="password"
+              autoComplete="current-password"
+              required
+            />
+          </Field>
+          {recoveryError && (
+            <p className="error" role="alert">
+              {recoveryError}
+            </p>
+          )}
+          <button className="secondary" disabled={recoveryBusy}>
+            {recoveryBusy
+              ? "Generating…"
+              : user.recovery_code_set
+                ? "Replace recovery code"
+                : "Generate recovery code"}
+          </button>
+        </form>
+      )}
       <hr />
       <h3>Your private space</h3>
       <p className="muted">

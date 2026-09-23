@@ -29,7 +29,10 @@ test("desktop and mobile: create account, spending, budget and linked activity",
   await page.getByLabel("Your name").fill("Ada");
   await page.getByLabel("Email address").fill(`ada-${Date.now()}@example.test`);
   await page.getByLabel("Password", { exact: true }).fill("correct-horse-2026");
+  await page.getByLabel("Confirm password").fill("correct-horse-2026");
   await page.getByRole("button", { name: "Create your account" }).click();
+  await expect(page.locator("code[aria-label='Recovery code']")).toBeVisible();
+  await page.getByRole("button", { name: "I saved it — continue" }).click();
   await expect(
     page.getByRole("heading", { name: "Hello, Ada." }),
   ).toBeVisible();
