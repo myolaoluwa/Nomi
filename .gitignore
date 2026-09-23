@@ -17,3 +17,4 @@ playwright-report/
 
 .vercel/
 .railway/
+.env.local

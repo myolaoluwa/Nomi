@@ -17,8 +17,8 @@
 ## Deployment
 
 - [x] Vercel and Railway build and health check configuration.
-- [ ] Production Vercel/Railway deployment and hosted end-to-end check.
-- [ ] Preview/staging deployment and hosted end-to-end check.
+- [x] Production Vercel/Railway deployment and hosted end-to-end check: registration, session cookie, dashboard, privacy status and account deletion.
+- [x] Separate staging Vercel/Railway deployment and hosted end-to-end check of the same flows.
 
 ## Scope and limits
 

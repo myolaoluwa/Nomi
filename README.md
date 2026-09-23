@@ -1,4 +1,4 @@
-# Nomi — V1
+# Nomi â€” V1
 
 Nomi is a responsive personal dashboard for money, time, tasks, habits, and goals. Users enter or import records, see a combined timeline and analytics, and ask basic questions answered from their own data.
 
@@ -41,8 +41,11 @@ API tests use temporary on-disk databases and cover authentication, isolation, f
 
 ## Deployment
 
-The repository includes a Railway Dockerfile/API health check and a Vercel frontend build. The API requires Railway PostgreSQL in production. For the frontend, deploy from the monorepo root using `vercel.json`. Set `WEB_ORIGIN` to the frontend's exact HTTPS origin. If the frontend directly calls a separate Railway domain, set `VITE_API_URL` to that API origin; for reliable cookies, prefer the `/api` same-origin proxy configured in `vercel.json` once the Railway domain is known.
+- Production: [nomi-v1-lovat.vercel.app](https://nomi-v1-lovat.vercel.app), backed by the Railway `nomi-v1` production environment.
+- Staging: [nomi-v1-staging.vercel.app](https://nomi-v1-staging.vercel.app), backed by the separate Railway staging environment and database.
 
-Use separate production and staging Railway environments with separate PostgreSQL data. After deployment, verify `/health`, registration, persistence after reload, logout, imports and account deletion. See [architecture](docs/architecture.md) and [phase acceptance](docs/phase-acceptance.md).
+Both Vercel projects deploy from the monorepo root with `vercel.json`. The `/api` function forwards requests to the project's `API_ORIGIN` environment variable, keeping browser sessions on the frontend origin. Each Railway API service uses its environment's PostgreSQL `DATABASE_URL`, `NODE_ENV=production`, and an exact `WEB_ORIGIN` matching its frontend. Never point staging at the production database.
 
-Official references: [Vercel monorepos](https://vercel.com/docs/monorepos), [Railway health checks](https://docs.railway.com/deployments/healthchecks).
+To release an update, deploy the Railway staging API and Vercel staging project, verify it, then deploy the Railway production API and Vercel production project. The API provides `/health`; hosted registration, session, dashboard and account deletion were checked on both origins. See [architecture](docs/architecture.md) and [phase acceptance](docs/phase-acceptance.md).
+
+Official references: [Vercel monorepos](https://vercel.com/docs/monorepos), [Railway health checks](https://docs.railway.com/deployments/healthchecks).
