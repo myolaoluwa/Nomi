@@ -1,0 +1,16 @@
+node_modules
+.env
+.env.*
+dist
+.vite
+.DS_Store
+npm-debug.log*
+
+!.env.example
+.data/
+**/.data/
+*.tsbuildinfo
+test-results/
+playwright-report/
+
+**/.data-e2e/

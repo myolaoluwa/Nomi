@@ -1,0 +1,389 @@
+Personal Operating System
+Product Concept
+A global mobile application that helps people understand and manage their everyday lives by
+bringing together their money, time, activities, habits, tasks, and goals in one intelligent
+platform.
+The app doesn’t simply ask users to track everything manually. Instead, it combines automatic
+data collection, simple manual input, integrations, and AI-powered analysis to create a
+continuously updated picture of the user’s life.
+The core promise is simple:
+Know where your time and money are going, understand your patterns, and make
+better-informed decisions about your life.
+The Problem
+People use separate applications for almost every part of their lives.
+Their bank tracks their money.
+Their calendar tracks appointments.
+Their fitness app tracks exercise.
+Their task manager tracks work.
+Their habit tracker tracks routines.
+Their notes app stores plans.
+Their subscription services charge them independently.
+These systems rarely communicate with one another.
+As a result, people can see individual pieces of their lives but struggle to understand the bigger
+picture.
+A person may know that they spent $1,500 this month, but not understand how their activities,
+routines, work, social life, and spending are connected.
+The application solves this by creating a unified personal data layer.
+The Core Experience
+The application revolves around five stages:
+Capture → Understand → Plan → Act → Improve
+1. Capture
+The app collects information from:
+● Bank integrations
+● Calendar
+● Fitness integrations
+● Receipts
+● Tasks
+● Habits
+● Manual activity logging
+● Goals
+● Subscriptions
+● Bills
+The goal is to minimize manual input.
+2. Understand
+The system organizes and analyzes the information.
+It identifies:
+● Spending patterns
+● Time allocation
+● Habit consistency
+● Goal progress
+● Recurring expenses
+● Unusual activity
+● Productivity patterns
+● Changes over time
+3. Plan
+Users can create:
+● Budgets
+● Goals
+● Habits
+● Tasks
+● Projects
+● Schedules
+● Savings targets
+4. Act
+Users go about their normal lives while the application records relevant information
+automatically or through simple inputs.
+5. Improve
+The application shows users what is changing and provides personalized insights based on
+their own data.
+Core Modules
+1. Personal Dashboard
+The home screen provides a simple overview of the user’s current situation.
+It can display:
+● Current financial position
+● Today’s activities
+● Upcoming tasks
+● Upcoming bills
+● Goal progress
+● Habit progress
+● Recent spending
+● Important alerts
+● Personalized insights
+The dashboard should prioritize what matters now, rather than displaying dozens of statistics.
+2. Personal Timeline
+The timeline creates a chronological view of the user’s day.
+For example:
+7:30 AM
+�
+�
+Running — 45 minutes
+8:30 AM
+�
+�
+Breakfast — $8
+9:00 AM
+�
+�
+Work — 4 hours
+1:15 PM
+�
+�
+Lunch — $14
+2:00 PM
+�
+�
+Work — 3 hours
+6:00 PM
+�
+�
+Gym — 1 hour
+7:30 PM
+�
+�
+Shopping — $52
+9:00 PM
+�
+�
+Reading — 45 minutes
+The timeline connects time, activities, and money.
+3. Finance
+The financial system includes:
+● Income
+● Expenses
+● Bank accounts
+● Cash accounts
+● Transfers
+● Budgets
+● Bills
+● Subscriptions
+● Savings
+● Debt
+● Assets
+● Investments
+● Net worth
+● Multiple currencies
+Users can manually track their finances or connect supported financial accounts where
+available.
+4. Activities
+Users can track activities such as:
+● Work
+● Exercise
+● Studying
+● Reading
+● Shopping
+● Traveling
+● Gaming
+● Social activities
+● Personal projects
+● Rest
+Activities can be automatically imported from integrations where possible.
+Manual activities should take only a few seconds to record.
+5. Tasks & Productivity
+Users can manage:
+● Tasks
+● Projects
+● Deadlines
+● Priorities
+● Recurring tasks
+● Reminders
+● Checklists
+Tasks can be associated with goals and projects.
+6. Habits
+Users can create custom habits.
+Examples:
+● Exercise 4× per week
+● Read 20 pages daily
+● Study for one hour
+● Drink water
+● Sleep before 11 PM
+The application tracks:
+● Streaks
+● Completion rates
+● Frequency
+● Trends
+● Consistency
+7. Goals
+Users can create measurable goals across different areas of life.
+Financial
+Save $5,000
+Fitness
+Run 200 km
+Career
+Apply for 50 jobs
+Education
+Complete a programming course
+Personal
+Read 20 books
+Goals can connect to tasks, habits, activities and financial data.
+8. AI Personal Intelligence
+This is one of the most important parts of the product.
+The AI isn’t simply a chatbot.
+It analyzes the user’s authorized data and helps them understand what is happening in their life.
+Users can ask:
+“Where did most of my money go this month?”
+“How did I spend my time this week?”
+“Why did my expenses increase?”
+“How consistent have I been with exercise?”
+“What subscriptions am I paying for?”
+“How much do I need to save every month to reach my goal?”
+“What goals am I falling behind on?”
+“Give me a summary of my week.”
+The system should provide the underlying figures or data supporting important answers.
+9. Cross-Data Intelligence
+This is where the application becomes different from ordinary finance, productivity, or habit
+apps.
+Instead of analyzing each category separately, the system looks for relationships between them.
+For example:
+Your food spending increased 27% this month. Most of the increase happened on days
+you worked outside your home.
+Or:
+Your exercise frequency has fallen from 4.1 sessions per week to 2.3 over the past
+month.
+Or:
+You have 5 recurring subscriptions costing $74/month.
+Or:
+You completed 82% of your planned tasks this week, your highest rate in the last six
+weeks.
+These insights are generated from the user’s own information.
+10. Reports
+The application can automatically generate:
+Daily Summary
+What happened today.
+Weekly Review
+● Spending
+● Activities
+● Productivity
+● Habits
+● Goals
+● Important changes
+Monthly Review
+● Income
+● Expenses
+● Savings
+● Net worth
+● Time allocation
+● Goal progress
+● Habit consistency
+● Major trends
+The user doesn’t need to manually create these reports.
+Automation
+Automation is central to the product.
+Instead of asking:
+“How can we get users to enter more information?”
+the product should ask:
+“How can we collect useful information with as little effort as possible?”
+Examples:
+Bank → transactions
+Calendar → scheduled activities
+Fitness integration → workouts
+Receipt → purchase
+Task manager → productivity
+Manual input → information that cannot be automatically collected
+This makes the application increasingly useful without turning it into a data-entry job.
+Global Product
+The application is designed for users worldwide.
+It supports:
+● Multiple currencies
+● Multiple countries
+● Multiple time zones
+● Local date formats
+● Local number formats
+● Multiple languages
+● Metric and imperial units
+● Regional financial integrations
+● International financial providers
+The underlying system remains global while country-specific integrations are added
+independently.
+Privacy & Control
+Because this application potentially contains extremely sensitive personal information, privacy
+should be a core product principle.
+Users should control:
+● Which integrations are connected
+● What data is imported
+● What the AI can access
+● What information is shared
+● Which accounts are private
+● Which information can be deleted
+The application should clearly explain how personal data is collected, stored, processed, and
+used.
+Monetization
+The product follows a freemium subscription model.
+Free
+● Basic finance tracking
+● Basic activities
+● Tasks
+● Habits
+● Goals
+● Basic dashboard
+● Basic analytics
+Pro
+Approximately $4.99/month or discounted annual pricing.
+Includes:
+● Advanced analytics
+● Multiple currencies
+● Receipt scanning
+● Advanced budgeting
+● Net worth tracking
+● Advanced goals
+● AI personal intelligence
+● Automated reports
+● Cloud synchronization
+● Advanced integrations
+Premium
+Approximately $9.99/month.
+Includes:
+● Bank synchronization where supported
+● Advanced AI analysis
+● Cross-data intelligence
+● Family/shared finances
+● Advanced automation
+● Premium integrations
+Pricing should ultimately be validated against user behavior, acquisition costs, retention, and the
+actual value users receive.
+MVP
+The first version should not attempt to build the entire vision.
+The MVP should focus on the core experience:
+V1
+Dashboard
+● Financial overview
+● Today’s activities
+● Tasks
+● Goals
+● Important insights
+Finance
+● Accounts
+● Transactions
+● Categories
+● Budgets
+Activities
+● Manual activity tracking
+● Timeline
+Tasks
+● Tasks
+● Projects
+● Reminders
+Habits
+● Custom habits
+● Streaks
+Goals
+● Goal creation
+● Progress tracking
+Analytics
+● Spending
+● Activity
+● Productivity
+● Goal progress
+AI
+● Personal data questions
+● Weekly summaries
+● Basic insights
+This creates a usable product without requiring every integration on day one.
+Long-Term Vision
+The ultimate goal is to create a personal intelligence platform.
+The user shouldn’t have to constantly ask:
+“What happened with my money?”
+“Where did my time go?”
+“Am I making progress?”
+“What changed this month?”
+The application should proactively surface important information.
+The long-term experience becomes:
+Your life generates data. The application turns that data into understanding.
+Positioning
+The product should not be marketed as:
+“A budgeting app.”
+“A habit tracker.”
+“A productivity app.”
+“An AI chatbot.”
+Instead:
+Your Personal Operating System
+Understand your money. Track your life. Manage your goals. Make sense of your
+progress.
+The fundamental product promise is:
+One intelligent place to understand where your time and money are going—and what you
+can do with that information.
+Where I think Nomi could fail
+The biggest danger is building too much too early.
+If Nomi launches with finance + banking + tasks + habits + calendar + fitness + AI + goals
++ OCR + reports + everything else, users may struggle to understand why they need it.
+I’d therefore make the first version incredibly clear:
+Nomi = the app that helps you understand your life through your personal data.
+Then gradually add capabilities.
+The real test
+I wouldn’t judge Nomi’s chances by how impressive the MVP looks.
+I’d judge it by whether you can get something like:
+100 users → 500 → 2,000 → 10,000
+while maintaining strong weekly/monthly retention and getting people to pay.
+If people repeatedly open Nomi because it tells them something genuinely useful about
+themselves, that’s when the investment story becomes much stronger.
+So my practical assessment today:
+Nomi has strong startup potential, but it’s not yet a proven business.

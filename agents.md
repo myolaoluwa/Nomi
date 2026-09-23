@@ -1,0 +1,1 @@
+Read C:\Users\HP\nomi\codex-build-plan.md
