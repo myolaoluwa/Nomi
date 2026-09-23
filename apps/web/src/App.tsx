@@ -14,6 +14,15 @@ import {
   type Row,
   type User,
 } from "./lib";
+import V1, { OverviewExtras, type V1Page } from "./V1";
+import {
+  clearOfflineData,
+  loadOfflineProfile,
+  pendingActivities,
+  queueActivity,
+  removePending,
+  saveOfflineProfile,
+} from "./offline";
 const currencies = [
   "NGN",
   "USD",
@@ -33,10 +42,14 @@ const pages = [
   "Finance",
   "Activities",
   "Timeline",
+  "Planner",
+  "Habits",
+  "Goals",
+  "Insights",
   "Settings",
 ] as const;
 type Page = (typeof pages)[number];
-const icons = ["◈", "▤", "◷", "≋", "⚙"];
+const icons = ["◈", "▤", "◷", "≋", "☑", "✦", "↗", "◎", "⚙"];
 function Field({
   label,
   children,
@@ -217,6 +230,7 @@ export default function App() {
       row: Row;
     } | null>(null),
     [busy, setBusy] = useState(false);
+  const [offlineMode, setOfflineMode] = useState(!navigator.onLine);
   async function refresh() {
     const me = await api("/me");
     const resources = Object.keys(emptyData) as Resource[];
@@ -225,14 +239,73 @@ export default function App() {
     setData(
       Object.fromEntries(resources.map((r, i) => [r, results[i]])) as Data,
     );
+    setOfflineMode(false);
+    void saveOfflineProfile(me, results[resources.indexOf("categories")]).catch(
+      () => {},
+    );
   }
   useEffect(() => {
     void refresh()
-      .catch((e) => {
-        if (e.message !== "Please sign in to continue") setError(e.message);
+      .catch(async (e) => {
+        if (e.message === "Please sign in to continue") return;
+        if (!navigator.onLine || e instanceof TypeError) {
+          const cached = await loadOfflineProfile().catch(() => undefined);
+          if (cached) {
+            setUser(cached.user);
+            setData({ ...emptyData, categories: cached.categories });
+            setOfflineMode(true);
+            return;
+          }
+        }
+        setError(e.message);
       })
       .finally(() => setLoading(false));
   }, []);
+  useEffect(() => {
+    if (!user) return;
+    async function synchronize() {
+      if (!navigator.onLine) {
+        setOfflineMode(true);
+        return;
+      }
+      try {
+        const pending = await pendingActivities(user!.id);
+        for (const record of pending) {
+          try {
+            await api("/activities", "POST", record.payload);
+          } catch (error) {
+            if (
+              !(error instanceof Error) ||
+              !error.message.includes("already exists")
+            )
+              throw error;
+            const current = await api("/activities");
+            if (!current.some((a: Row) => a.client_id === record.id))
+              throw error;
+          }
+          await removePending(record.id);
+        }
+        await refresh();
+        if (pending.length)
+          setNotice(
+            `${pending.length} offline activit${pending.length === 1 ? "y" : "ies"} synced`,
+          );
+      } catch (error) {
+        setOfflineMode(true);
+        setError(
+          `Offline entries are waiting to sync: ${(error as Error).message}`,
+        );
+      }
+    }
+    const offline = () => setOfflineMode(true);
+    window.addEventListener("online", synchronize);
+    window.addEventListener("offline", offline);
+    if (navigator.onLine) void synchronize();
+    return () => {
+      window.removeEventListener("online", synchronize);
+      window.removeEventListener("offline", offline);
+    };
+  }, [user?.id]);
   useEffect(() => {
     setSearch("");
     setFilter("all");
@@ -511,7 +584,15 @@ export default function App() {
                       ? "Make your time count."
                       : page === "Timeline"
                         ? "Your days, connected."
-                        : "Make yourself at home."}
+                        : page === "Planner"
+                          ? "Make a little progress."
+                          : page === "Habits"
+                            ? "Keep showing up."
+                            : page === "Goals"
+                              ? "See how far you've come."
+                              : page === "Insights"
+                                ? "Find your patterns."
+                                : "Make yourself at home."}
               </h1>
               <p>
                 {page === "Overview"
@@ -522,10 +603,20 @@ export default function App() {
                       ? "Capture the moments that make up your day."
                       : page === "Timeline"
                         ? "Your time and spending, together in one place."
-                        : "A few preferences to make Nomi feel like you."}
+                        : page === "Planner"
+                          ? "Tasks, projects, and reminders in one calm place."
+                          : page === "Habits"
+                            ? "Build consistency one day at a time."
+                            : page === "Goals"
+                              ? "Measurable progress on what matters."
+                              : page === "Insights"
+                                ? "Simple answers backed by your own records."
+                                : "Your preferences, imports, and data controls."}
               </p>
             </div>
-            {page !== "Settings" && (
+            {(
+              ["Overview", "Finance", "Activities", "Timeline"] as Page[]
+            ).includes(page) && (
               <button
                 className="primary"
                 onClick={() => open(page === "Finance" ? tab : "activities")}
@@ -553,6 +644,12 @@ export default function App() {
           {notice && (
             <div role="status" className="toast">
               ✓ {notice}
+            </div>
+          )}
+          {offlineMode && (
+            <div className="offline-banner" role="status">
+              Offline mode · new activities will be saved on this device and
+              synced when you reconnect.
             </div>
           )}
           {page === "Overview" && (
@@ -664,6 +761,10 @@ export default function App() {
                   </section>
                 </div>
               </div>
+              <OverviewExtras
+                user={user}
+                onNavigate={(p: V1Page) => setPage(p)}
+              />
             </>
           )}
           {page === "Finance" && (
@@ -879,20 +980,49 @@ export default function App() {
             </>
           )}
           {page === "Settings" && (
-            <Settings
-              user={user}
-              onSave={async () => {
-                await refresh();
-                setNotice("Preferences saved");
-              }}
-              onLogout={async () => {
-                try {
-                  await api("/auth/logout", "POST");
+            <>
+              <Settings
+                user={user}
+                onSave={async () => {
+                  await refresh();
+                  setNotice("Preferences saved");
+                }}
+                onLogout={async () => {
+                  try {
+                    await api("/auth/logout", "POST");
+                    await clearOfflineData().catch(() => {});
+                    setUser(null);
+                    setData(emptyData);
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
+                }}
+              />
+              <V1
+                page="Settings"
+                user={user}
+                finance={data}
+                onDataChanged={refresh}
+                onAccountDeleted={() => {
+                  void clearOfflineData();
                   setUser(null);
                   setData(emptyData);
-                } catch (e) {
-                  setError((e as Error).message);
-                }
+                }}
+              />
+            </>
+          )}
+          {(["Planner", "Habits", "Goals", "Insights"] as Page[]).includes(
+            page,
+          ) && (
+            <V1
+              page={page as V1Page}
+              user={user}
+              finance={data}
+              onDataChanged={refresh}
+              onAccountDeleted={() => {
+                void clearOfflineData();
+                setUser(null);
+                setData(emptyData);
               }}
             />
           )}
@@ -913,6 +1043,13 @@ export default function App() {
             await refresh();
             setModal(null);
             setNotice("Saved to your space");
+          }}
+          onQueued={() => {
+            setModal(null);
+            setOfflineMode(true);
+            setNotice(
+              "Activity saved on this device. It will sync when you reconnect.",
+            );
           }}
         />
       )}
@@ -981,6 +1118,7 @@ function Editor({
   user,
   onClose,
   onSaved,
+  onQueued,
 }: {
   resource: Resource;
   row?: Row;
@@ -988,6 +1126,7 @@ function Editor({
   user: User;
   onClose: () => void;
   onSaved: () => Promise<void>;
+  onQueued: () => void;
 }) {
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -997,6 +1136,13 @@ function Editor({
     [accountId, setAccountId] = useState(
       row?.account_id || data.accounts[0]?.id || "",
     );
+  const [goals, setGoals] = useState<Row[]>([]);
+  useEffect(() => {
+    if (resource === "activities")
+      void api("/goals")
+        .then(setGoals)
+        .catch(() => setGoals([]));
+  }, [resource]);
   const selectedCurrency =
     resource === "transactions"
       ? data.accounts.find((a) => a.id === accountId)?.currency || user.currency
@@ -1041,14 +1187,34 @@ function Editor({
       if (resource === "activities") {
         payload.duration = Number(payload.duration);
         payload.transaction_id = payload.transaction_id || null;
+        payload.goal_id = payload.goal_id || null;
+        payload.client_id = row?.client_id || crypto.randomUUID();
       }
       if (payload.occurred_at)
         payload.occurred_at = new Date(payload.occurred_at).toISOString();
-      await api(
-        `/${resource}${row ? "/" + row.id : ""}`,
-        row ? "PUT" : "POST",
-        payload,
-      );
+      if (resource === "activities" && !row && !navigator.onLine) {
+        await queueActivity(user.id, payload);
+        onQueued();
+        return;
+      }
+      try {
+        await api(
+          `/${resource}${row ? "/" + row.id : ""}`,
+          row ? "PUT" : "POST",
+          payload,
+        );
+      } catch (error) {
+        if (
+          resource === "activities" &&
+          !row &&
+          (error instanceof TypeError || !navigator.onLine)
+        ) {
+          await queueActivity(user.id, payload);
+          onQueued();
+          return;
+        }
+        throw error;
+      }
       await onSaved();
     } catch (e) {
       setError((e as Error).message);
@@ -1248,6 +1414,18 @@ function Editor({
               Link existing spending to give it context. This does not create a
               second charge.
             </small>
+            <Field label="Link a goal (optional)">
+              <select name="goal_id" defaultValue={row?.goal_id || ""}>
+                <option value="">No linked goal</option>
+                {goals
+                  .filter((g) => g.metric === "activity_minutes")
+                  .map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.title}
+                    </option>
+                  ))}
+              </select>
+            </Field>
             <Field label="Tags (comma separated)">
               <input
                 name="tags"

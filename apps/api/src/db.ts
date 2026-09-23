@@ -19,11 +19,17 @@ export async function connect(): Promise<Database> {
         };
       })()
     : new PGlite(process.env.DATA_DIR || "./.data");
-  const sql = await readFile(
-    new URL("../migrations/001_initial.sql", import.meta.url),
-    "utf8",
-  );
-  for (const statement of sql.split(";").filter((s) => s.trim()))
-    await db.query(statement);
+  for (const migration of [
+    "001_initial.sql",
+    "002_v1.sql",
+    "003_offline.sql",
+  ]) {
+    const sql = await readFile(
+      new URL(`../migrations/${migration}`, import.meta.url),
+      "utf8",
+    );
+    for (const statement of sql.split(";").filter((s) => s.trim()))
+      await db.query(statement);
+  }
   return db;
 }

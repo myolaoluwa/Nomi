@@ -1,29 +1,25 @@
-# Phase acceptance
+# V1 acceptance review
 
-## Phase 0 — foundation
+## Product
 
-- [x] Existing npm workspaces retained; TypeScript API and React app build.
-- [x] Authentication, password hashing, expiring sessions, logout and protected routes.
-- [x] PostgreSQL-compatible schema and initial migration; persistent local development.
-- [x] Responsive application shell, loading/empty/error states and accessible native dialog forms.
-- [x] Environment examples, Vercel frontend configuration, Railway Docker and readiness check.
-- [ ] Hosted frontend/backend connection verified — requires configured Vercel/Railway environments.
+- [x] Create an account, sign in/out, edit profile settings.
+- [x] Log income and expenses; see account balances and a finance overview.
+- [x] See dashboard money, tasks, habit/goal progress and alerts.
+- [x] Add activities and view a combined timeline.
+- [x] Manage projects, priorities, due dates, in-app reminders and recurring tasks.
+- [x] Create and track habits with completion and streaks.
+- [x] Define measurable goals and link their progress to records.
+- [x] Ask basic questions and get answers grounded in recorded figures with supporting IDs.
+- [x] Review source and data usage before importing bank/calendar/fitness CSV files.
+- [x] Remove imported data, export data, delete records and delete an account.
+- [x] Log an activity during a connection loss while the app is open; sync later.
 
-## Phase 1 — finance
+## Deployment
 
-- [x] Profile and settings editing, currency, timezone and locale.
-- [x] Account, category, transaction and monthly budget CRUD.
-- [x] Accurate derived balances, income/expense summary, monthly category budget consumption.
-- [x] Currency isolation, appropriate decimal precision, user ownership and relation validation.
-- [x] Automated data lifecycle and cross-user isolation tests.
+- [x] Vercel and Railway build and health check configuration.
+- [ ] Production Vercel/Railway deployment and hosted end-to-end check.
+- [ ] Preview/staging deployment and hosted end-to-end check.
 
-## Phase 2 — activities and timeline
+## Scope and limits
 
-- [x] Activity logging/edit/delete with category, duration, timestamp, location, tags and notes.
-- [x] Contextual transaction association.
-- [x] Combined timeline grouped by profile-local day, with search and event-type filters.
-- [x] Desktop and mobile flows covered by browser tests.
-
-## Outside this delivery
-
-Phase 3 onward: tasks/projects/reminders, habits, measurable goals, broader analytics, AI, integrations and retention/privacy polish. Native mobile, offline synchronization and production account recovery are not supplied by the original scaffold or this phase delivery. Live cloud deployment remains a separate environment-dependent step.
+V1 uses explicit CSV imports rather than bank/calendar/fitness provider OAuth connections. No background provider synchronization, notification delivery, password recovery/email verification, or native mobile build. The question parser handles listed personal-data topics deterministically; it does not send data to an AI service or generate unrestricted answers. These limits should be evaluated against any broader release promise before launch.

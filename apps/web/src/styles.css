@@ -1299,3 +1299,355 @@ dialog::backdrop {
     max-width: 160px;
   }
 }
+/* V1 modules */
+.sidebar {
+  overflow-y: auto;
+}
+.sidebar nav {
+  flex-shrink: 0;
+}
+.v1-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.v1-grid,
+.v1-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.v1-overview {
+  margin-top: 24px;
+}
+.v1-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 0;
+  border-bottom: 1px solid #eef1e9;
+}
+.v1-row:last-child {
+  border: 0;
+}
+.v1-row > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.v1-row strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.v1-row small {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.v1-mark {
+  width: 34px;
+  height: 34px;
+  background: #edf3e8;
+  border-radius: 9px;
+  color: #719266;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.v1-check {
+  width: 34px;
+  height: 34px;
+  background: #edf3e8;
+  color: #5f805e;
+  border-radius: 8px;
+  font-size: 21px;
+  flex-shrink: 0;
+}
+.v1-row .row-actions {
+  margin: 0;
+  flex-shrink: 0;
+}
+.habit-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #eef1e9;
+  padding: 20px 0;
+}
+.habit-card:last-child {
+  border: 0;
+}
+.habit-card > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.habit-card h3 {
+  margin-bottom: 5px;
+}
+.habit-card p,
+.goal-card p {
+  font-size: 12px;
+  color: #879584;
+}
+.habit-card progress,
+.goal-card progress {
+  max-width: 380px;
+}
+.habit-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.goal-card > strong {
+  display: block;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.goal-card > strong small {
+  font-weight: 400;
+  font-size: 13px;
+}
+.goal-card .section-heading {
+  margin-bottom: 24px;
+}
+.goal-card .row-actions {
+  margin-top: 18px;
+}
+.bar-row {
+  display: grid;
+  grid-template-columns: 60px 1fr minmax(85px, auto);
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+}
+.bar-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bar {
+  height: 8px;
+  border-radius: 5px;
+  min-width: 0;
+}
+.bar.income {
+  background: #95b18a;
+}
+.bar.expense {
+  background: #cc9c83;
+}
+.bar-row > small:last-child {
+  text-align: right;
+}
+.metric-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef1e9;
+  font-size: 12px;
+  color: #81917f;
+}
+.metric-line strong {
+  color: #405841;
+  font-weight: 600;
+  text-align: right;
+}
+.v1-page h3:not(.day-heading) {
+  margin-top: 18px;
+}
+.v1-page .section-heading h3 {
+  margin-top: 0;
+}
+.insight-panel form {
+  max-width: 650px;
+}
+.insight-panel .section-heading p {
+  font-size: 12px;
+  color: #8b9789;
+  margin-top: 5px;
+}
+.question-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 20px 0;
+}
+.question-chips .secondary {
+  white-space: normal;
+}
+.insight-answer,
+.consent-box,
+.import-preview {
+  padding: 20px;
+  background: #f2f6ed;
+  border: 1px solid #dfe8d5;
+  border-radius: 9px;
+  margin-top: 20px;
+}
+.insight-answer p,
+.consent-box p,
+.import-preview p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #58715c;
+  margin: 12px 0;
+}
+.insight-answer details {
+  margin-top: 16px;
+  font-size: 12px;
+}
+.insight-answer li {
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+}
+.consent-box .primary {
+  margin-top: 8px;
+}
+.privacy-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 15px 0;
+}
+.privacy-counts span {
+  background: #f4f7f1;
+  border: 1px solid #e6ede0;
+  padding: 7px 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  color: #7b8a7a;
+}
+.v1-page .panel > .secondary {
+  margin-top: 15px;
+}
+.v1-page .panel > .danger {
+  margin-top: 15px;
+}
+.import-preview ul {
+  font-size: 12px;
+  color: #6d806c;
+  line-height: 1.8;
+  padding-left: 20px;
+}
+.success {
+  background: #eff6e9;
+  color: #4d7650;
+  border: 1px solid #d6e7cb;
+  padding: 12px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+.v1-page .panel > h3 {
+  margin-top: 26px;
+}
+.v1-page .panel > .muted {
+  line-height: 1.7;
+}
+.v1-page .field {
+  max-width: 620px;
+}
+.v1-page .panel form {
+  max-width: 660px;
+}
+.v1-page .panel form > .secondary {
+  margin: 8px 0;
+}
+.v1-page .panel form > .danger {
+  margin: 12px 0;
+}
+.v1-page .panel .row-actions .delete,
+.v1-page .v1-row > .delete {
+  background: none;
+  color: #ad6d5d;
+  font-size: 11px;
+}
+.v1-page .row-actions button {
+  padding: 4px;
+}
+.v1-page .panel .section-heading {
+  min-height: 28px;
+}
+@media (max-width: 900px) {
+  .v1-grid,
+  .v1-overview {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .sidebar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  .sidebar nav {
+    justify-content: flex-start;
+    width: max-content;
+    min-width: 100%;
+  }
+  .sidebar nav button {
+    min-width: 62px;
+  }
+  .v1-row {
+    gap: 9px;
+  }
+  .v1-row strong {
+    font-size: 12px;
+  }
+  .v1-row .row-actions {
+    gap: 6px;
+  }
+  .habit-card {
+    display: block;
+  }
+  .habit-actions {
+    margin-top: 14px;
+    align-items: flex-start;
+  }
+  .goal-card > strong {
+    font-size: 17px;
+  }
+  .bar-row {
+    grid-template-columns: 52px 1fr 80px;
+    gap: 7px;
+  }
+  .bar-row > small {
+    font-size: 9px;
+  }
+  .v1-page .section-heading {
+    align-items: flex-start;
+  }
+  .v1-page .section-heading h2 {
+    font-size: 15px;
+  }
+  .v1-page .section-heading .primary,
+  .v1-page .section-heading .secondary {
+    padding: 9px 12px;
+  }
+  .v1-overview {
+    margin-top: 20px;
+  }
+}
+.offline-banner {
+  background: #fff5df;
+  border: 1px solid #e9d7ae;
+  color: #8a683a;
+  font-size: 12px;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.v1-alert {
+  font-size: 12px;
+  color: #9a634e;
+  background: #fff4ec;
+  padding: 9px 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+}

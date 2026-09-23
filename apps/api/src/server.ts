@@ -16,6 +16,8 @@ import {
 import { promisify } from "node:util";
 import { z } from "zod";
 import type { Database } from "./db.js";
+import { installV1 } from "./v1.js";
+import { installImports } from "./imports.js";
 const scrypt = promisify(scryptCallback);
 const text = z.string().trim().min(1).max(160);
 const currency = z
@@ -90,6 +92,8 @@ const schemas = {
     occurred_at: date,
     duration: z.number().int().min(1).max(10080),
     transaction_id: z.string().uuid().nullable().default(null),
+    goal_id: z.string().uuid().nullable().default(null),
+    client_id: z.string().uuid().nullable().default(null),
     location: z.string().max(200).default(""),
     notes: z.string().max(4000).default(""),
     tags: z.string().max(500).default(""),
@@ -277,6 +281,8 @@ export function createApp(db: Database) {
       );
     }),
   );
+  installV1(app, db);
+  installImports(app, db);
   for (const resource of Object.keys(schemas) as (keyof typeof schemas)[]) {
     app.get(
       `/api/${resource}`,
@@ -330,6 +336,19 @@ export function createApp(db: Database) {
               res.status(400).json({ error: "Choose a matching category" });
               return;
             }
+          }
+          if (
+            resource === "activities" &&
+            data.goal_id &&
+            !(
+              await db.query(
+                "SELECT id FROM goals WHERE id=$1 AND user_id=$2",
+                [data.goal_id, uid],
+              )
+            ).rows.length
+          ) {
+            res.status(400).json({ error: "Choose a goal from your account" });
+            return;
           }
           if (resource === "categories" && method === "put") {
             const old = (
